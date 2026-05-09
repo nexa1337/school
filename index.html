@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- SEO Meta Tags -->
+    <title>N E X A 1337 - Free Structured Learning Platform</title>
+    <meta name="description" content="Explore curated learning paths built from the best free YouTube courses. Learn cybersecurity, coding, design, and more without distractions." />
+    <meta name="keywords" content="free online courses, curated learning platform, youtube courses organized, cybersecurity roadmap, fullstack learning path, free masterclasses" />
+    <meta name="author" content="N E X A 1337" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="N E X A 1337 - Free Structured Learning Platform" />
+    <meta property="og:description" content="Explore curated learning paths built from the best free YouTube courses. Learn cybersecurity, coding, design, and more without distractions." />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="N E X A 1337 - Free Structured Learning Platform" />
+    <meta property="twitter:description" content="Explore curated learning paths built from the best free YouTube courses. Learn cybersecurity, coding, design, and more without distractions." />
+    
+    <script>
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason;
+        var msg = reason && reason.message ? reason.message : String(reason);
+        if (msg.toLowerCase().includes('websocket') || msg.toLowerCase().includes('vite')) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        var msg = event.message || String(event.error);
+        if (msg.toLowerCase().includes('websocket') || msg.toLowerCase().includes('vite')) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
