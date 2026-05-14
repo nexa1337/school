@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { PlayCircle, BookOpen, Code, Terminal, Layout, Database, Shield, ArrowRight, Zap, Target, Award, CheckCircle2, ChevronRight, Video, Users, Github, Youtube, Cloud, Search, BarChart3, Star, Layers } from 'lucide-react';
@@ -500,32 +500,10 @@ export function Home() {
       </div>
 
       <ContinueLearningSection />
-      <ValuePropsSection />
-      <StatsSection />
       
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 space-y-24">
         
-        {/* Banner 2 */}
-        <section className="space-y-4">
-          {homeMiddleBanners.length > 0 ? (
-            homeMiddleBanners.map(banner => (
-              <AdBanner 
-                key={banner.id}
-                desktopUrl={banner.desktopImageUrl}
-                mobileUrl={banner.mobileImageUrl}
-                targetUrl={banner.targetUrl}
-              />
-            ))
-          ) : (
-            <AdBanner 
-              desktopUrl="https://blogger.googleusercontent.com/img/a/AVvXsEg0zMrZ22tyGW-aXpu2FAjvrfTlqRz699E3AMMRvV1z26qjt1QZTk45h6pPUhWEzmBW-AmKnKGnEg8qanKwtoP76u8qxQoXjCb91OBqZbQLsr4zRM9WUpBr9w5iGZL668__-C8S7LDj-0nfljMmyL9NLQuKMYsCwPcjtfqbuHF8sbOsKoeyNC-kkXOQ5wnl"
-              mobileUrl="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjD96N8hkeoib7OrzYw5DlfIhpkSjPySH4xy3R2_4NL6pbcN_zAGHK6Wg/s1600/Untitled-5.png"
-              targetUrl="https://linktr.ee/nexa1337"
-            />
-          )}
-        </section>
-
         {/* Featured Paths */}
         <section>
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
@@ -742,6 +720,29 @@ export function Home() {
             ))}
           </section>
         )}
+      </div>
+      <ValuePropsSection />
+      <StatsSection />
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 space-y-4">
+        {/* Banner 2 */}
+        <section className="space-y-4">
+          {homeMiddleBanners.length > 0 ? (
+            homeMiddleBanners.map(banner => (
+              <AdBanner 
+                key={banner.id}
+                desktopUrl={banner.desktopImageUrl}
+                mobileUrl={banner.mobileImageUrl}
+                targetUrl={banner.targetUrl}
+              />
+            ))
+          ) : (
+            <AdBanner 
+              desktopUrl="https://blogger.googleusercontent.com/img/a/AVvXsEg0zMrZ22tyGW-aXpu2FAjvrfTlqRz699E3AMMRvV1z26qjt1QZTk45h6pPUhWEzmBW-AmKnKGnEg8qanKwtoP76u8qxQoXjCb91OBqZbQLsr4zRM9WUpBr9w5iGZL668__-C8S7LDj-0nfljMmyL9NLQuKMYsCwPcjtfqbuHF8sbOsKoeyNC-kkXOQ5wnl"
+              mobileUrl="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjD96N8hkeoib7OrzYw5DlfIhpkSjPySH4xy3R2_4NL6pbcN_zAGHK6Wg/s1600/Untitled-5.png"
+              targetUrl="https://linktr.ee/nexa1337"
+            />
+          )}
+        </section>
       </div>
       <FinalCTA />
     </div>

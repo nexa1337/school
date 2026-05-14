@@ -71,6 +71,23 @@ export interface LearningPath {
     links?: AppNotificationLink[];
     createdAt: number;
     isActive: boolean;
+    targetUserId?: string;
+  }
+  
+  export interface CourseReport {
+    id: string;
+    type: 'broken_video';
+    courseId: string;
+    courseTitle: string;
+    videoId: string;
+    videoTitle: string;
+    youtubeId: string;
+    userId: string;
+    userName: string;
+    userEmail?: string;
+    status: 'pending' | 'resolved';
+    createdAt: number;
+    categoryId?: string;
   }
   
   export type BannerPlacement = 'home-hero' | 'home-middle' | 'home-bottom' | 'course-sidebar' | 'course-bottom';

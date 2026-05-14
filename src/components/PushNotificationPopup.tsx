@@ -2,17 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../store/useStore';
 import { X, ExternalLink, Bell } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function PushNotificationPopup() {
-  const { notifications } = useStore();
+  const { notifications, user } = useStore();
   const [activeNotif, setActiveNotif] = useState<any | null>(null);
   const [sessionSkipped, setSessionSkipped] = useState<string[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // get active notifications
-    const active = notifications.filter(n => n.isActive);
+    const active = notifications.filter(n => n.isActive && (!n.targetUserId || (user && n.targetUserId === user.uid)));
     if (active.length === 0) {
       setActiveNotif(null);
       return;
@@ -32,7 +33,7 @@ export function PushNotificationPopup() {
     } else {
       setActiveNotif(null);
     }
-  }, [notifications, sessionSkipped]);
+  }, [notifications, sessionSkipped, user]);
 
   const handleDismiss = (dontShowAgain: boolean) => {
     if (!activeNotif) return;
@@ -47,8 +48,8 @@ export function PushNotificationPopup() {
     setActiveNotif(null);
   };
 
-  if (location.pathname !== '/') return null;
   if (!activeNotif) return null;
+  if (!activeNotif.targetUserId && location.pathname !== '/') return null;
 
   return (
     <AnimatePresence>
@@ -101,43 +102,65 @@ export function PushNotificationPopup() {
             
             <div className="mt-8 flex flex-col gap-3 w-full">
               {activeNotif.link && (
-                <a 
-                  href={activeNotif.link}
-                  className="w-full bg-primary text-primary-foreground py-3.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-md hover:shadow-lg"
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (activeNotif.link.startsWith('/')) {
+                      navigate(activeNotif.link);
+                    } else {
+                      window.location.href = activeNotif.link;
+                    }
+                    if (activeNotif.title === 'Video Fixed!') {
+                      handleDismiss(true);
+                    } else {
+                      handleDismiss(false);
+                    }
+                  }}
+                  className="w-full bg-primary text-primary-foreground py-3.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-md hover:shadow-lg focus:outline-none"
                 >
                   {activeNotif.linkLogo && <img src={activeNotif.linkLogo} alt="" className="w-5 h-5 object-contain" />}
-                  Learn More 
+                  {activeNotif.title === 'Video Fixed!' ? 'Keep Learning' : 'Learn More'} 
                   {!activeNotif.linkLogo && <ExternalLink className="w-4 h-4 rtl:hidden" />}
                   {!activeNotif.linkLogo && <ExternalLink className="w-4 h-4 hidden rtl:block rotate-180" />}
-                </a>
+                </button>
               )}
               
               {activeNotif.links && activeNotif.links.map((link: any, idx: number) => (
-                <a 
+                <button 
                   key={idx}
-                  href={link.url}
-                  className="w-full bg-secondary text-secondary-foreground py-3.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 hover:bg-secondary/80 hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (link.url.startsWith('/')) {
+                      navigate(link.url);
+                    } else {
+                      window.location.href = link.url;
+                    }
+                    handleDismiss(false);
+                  }}
+                  className="w-full bg-secondary text-secondary-foreground py-3.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 hover:bg-secondary/80 hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-sm focus:outline-none"
                 >
                   {link.logo && <img src={link.logo} alt="" className="w-5 h-5 object-contain" />}
                   {link.label} 
                   {!link.logo && <ExternalLink className="w-4 h-4 rtl:hidden" />}
                   {!link.logo && <ExternalLink className="w-4 h-4 hidden rtl:block rotate-180" />}
-                </a>
+                </button>
               ))}
               
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-4">
                 <button 
                   onClick={() => handleDismiss(false)}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-center border-2 border-border bg-transparent hover:bg-muted transition-colors text-foreground"
+                  className={`w-full ${activeNotif.title === 'Video Fixed!' ? '' : 'sm:flex-1'} py-3 px-4 rounded-xl font-bold text-center border-2 border-border bg-transparent hover:bg-muted transition-colors text-foreground`}
                 >
                   Close
                 </button>
-                <button 
-                  onClick={() => handleDismiss(true)}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  Don't show me again
-                </button>
+                {activeNotif.title !== 'Video Fixed!' && (
+                  <button 
+                    onClick={() => handleDismiss(true)}
+                    className="w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    Don't show me again
+                  </button>
+                )}
               </div>
             </div>
           </div>

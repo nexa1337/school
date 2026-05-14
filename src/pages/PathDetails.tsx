@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { filterByLanguage } from '../lib/utils';
+import { ScrollingText } from '../components/ScrollingText';
 
 const iconMap: Record<string, any> = {
   Code,
@@ -35,7 +36,7 @@ export function PathDetails() {
 
   return (
     <div className="w-full px-4 md:px-8 py-8 max-w-7xl mx-auto">
-      <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/paths')} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors font-medium">
+      <button onClick={() => navigate('/paths')} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors font-medium">
         <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
         {t('back', 'Back')}
       </button>
@@ -113,8 +114,8 @@ export function PathDetails() {
                       <BookOpen className="w-4 h-4" />
                       <span>{course.videos.length} {t('videos')}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-foreground">{course.instructor}</span>
+                    <div className="flex items-center gap-1 max-w-[50%]">
+                      <ScrollingText className="font-medium text-foreground">{course.instructor}</ScrollingText>
                     </div>
                   </div>
 

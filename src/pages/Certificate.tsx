@@ -169,7 +169,7 @@ export function Certificate() {
   return (
     <div className="w-full px-4 md:px-8 py-8 min-h-screen bg-muted/30">
       <div className="flex items-center justify-between mb-8 max-w-5xl mx-auto print:hidden">
-        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/certificates')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors w-fit group">
+        <button onClick={() => navigate('/certificates')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors w-fit group">
           <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           <span className="font-medium group-hover:underline">{t('back', 'Back')}</span>
         </button>

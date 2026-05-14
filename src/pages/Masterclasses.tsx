@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo } from 'react';
 import { cn, filterByLanguage } from '../lib/utils';
 import { useStore } from '../store/useStore';
+import { ScrollingText } from '../components/ScrollingText';
 
 export function Masterclasses() {
   const { t } = useTranslation();
@@ -253,8 +254,8 @@ export function Masterclasses() {
                   <Clock className="w-4 h-4 text-primary" />
                   <span className="font-semibold">{t('one_video', 'One Video')}</span>
                 </div>
-                <div className="flex items-center gap-1 font-medium text-foreground">
-                  {course.instructor}
+                <div className="flex items-center gap-1 font-medium text-foreground max-w-[50%]">
+                  <ScrollingText>{course.instructor}</ScrollingText>
                 </div>
               </div>
 

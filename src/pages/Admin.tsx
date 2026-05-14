@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { Navigate } from 'react-router-dom';
-import { ShieldAlert, Plus, Save, Database, Trash2, Edit, Download, Upload, Bell } from 'lucide-react';
+import { ShieldAlert, Plus, Save, Database, Trash2, Edit, Download, Upload, Bell, AlertTriangle } from 'lucide-react';
 import { 
   addOrUpdateCourse, 
   deleteCourseInFirestore, 
@@ -16,14 +16,17 @@ import {
 import { AdminForms } from '../components/AdminForms';
 import { AdminAnalytics } from '../components/AdminAnalytics';
 import { AdminUsers } from '../components/AdminUsers';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, updateDoc, query, where, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import * as XLSX from 'xlsx';
+import { CourseReport, AppNotification } from '../data/courses';
 
 export function Admin() {
   const { t } = useTranslation();
   const { user, allCourses, learningPaths, notifications, loadContent } = useStore();
-  const [activeTab, setActiveTab] = useState<'analytics' | 'courses' | 'paths' | 'settings' | 'users' | 'notifications'>('courses');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'courses' | 'paths' | 'settings' | 'users' | 'notifications' | 'reports' | 'banners'>('courses');
+  const [reports, setReports] = useState<CourseReport[]>([]);
+  const [reportsPage, setReportsPage] = useState(1);
   const [isMigrating, setIsMigrating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [editingItem, setEditingItem] = useState<{type: 'course'|'path'|'user'|'notification', item?: any} | null>(null);
@@ -32,11 +35,59 @@ export function Admin() {
   const [deleteDialog, setDeleteDialog] = useState<{type: 'course'|'path'|'notification', id: string, title: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (activeTab === 'reports' && user && ['admin', 'publisher'].includes(user.role)) {
+      const fetchReports = async () => {
+        const snap = await getDocs(collection(db, 'reports'));
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CourseReport));
+        setReports(data.sort((a,b) => b.createdAt - a.createdAt));
+      };
+      fetchReports();
+    }
+  }, [activeTab, user]);
+
   // Check admin or publisher
   if (!user || !['admin', 'publisher'].includes(user.role)) {
     return <Navigate to="/" replace />;
   }
   const isAdmin = user.role === 'admin';
+
+  const handleResolveReport = async (report: CourseReport) => {
+    if (!isAdmin) return;
+    try {
+      const q = query(collection(db, 'reports'), where('videoId', '==', report.videoId), where('status', '==', 'pending'));
+      const snap = await getDocs(q);
+      
+      const batch = writeBatch(db);
+      const userIdsNotified = new Set<string>();
+
+      snap.docs.forEach((d, index) => {
+         batch.update(d.ref, { status: 'resolved' });
+         const data = d.data() as CourseReport;
+         
+         if (!userIdsNotified.has(data.userId)) {
+           userIdsNotified.add(data.userId);
+           const newNotifRef = doc(collection(db, 'notifications'));
+           batch.set(newNotifRef, {
+             id: newNotifRef.id,
+             title: 'Video Fixed!',
+             message: `Sorry for the inconvenience. The broken video "${data.videoTitle}" in the course "${data.courseTitle}" has been fixed.`,
+             targetUserId: data.userId,
+             link: `/course/${data.courseId}`,
+             createdAt: Date.now() + index, // Ensure slightly different timestamps if needed
+             isActive: true
+           });
+         }
+      });
+      await batch.commit();
+
+      setReports(reports.map(r => r.videoId === report.videoId ? { ...r, status: 'resolved' } : r));
+      alert('Report(s) marked as resolved and notification(s) sent to user(s).');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to resolve report.');
+    }
+  };
 
   const handleMigrate = async () => {
     if (!window.confirm("Are you sure? This will overwrite Firestore with current Google Sheets data!")) return;
@@ -312,6 +363,12 @@ export function Admin() {
                 Banners
               </button>
               <button 
+                onClick={() => setActiveTab('reports')}
+                className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'reports' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Reports
+              </button>
+              <button 
                 onClick={() => setActiveTab('settings')}
                 className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'settings' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               >
@@ -566,6 +623,100 @@ export function Admin() {
                 <p className="text-muted-foreground">No banners created yet.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'reports' && isAdmin && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6 text-amber-500" />
+              Broken Video Reports
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {reports.length === 0 ? (
+               <div className="text-center py-12 bg-muted/30 rounded-xl border border-border">
+                 <p className="text-muted-foreground">No reports found.</p>
+               </div>
+            ) : (() => {
+              const uniqueReports: CourseReport[] = [];
+              const seenVideos = new Set<string>();
+              // Process pending first to show them on top, then resolved.
+              const processReport = (r: CourseReport) => {
+                 if (!seenVideos.has(r.videoId)) {
+                    seenVideos.add(r.videoId);
+                    uniqueReports.push(r);
+                 }
+              };
+              reports.filter(r => r.status === 'pending').forEach(processReport);
+              reports.filter(r => r.status === 'resolved').forEach(processReport);
+              
+              const currentReports = uniqueReports.slice((reportsPage - 1) * 10, reportsPage * 10);
+              
+              return (
+              <>
+              {currentReports.map(report => {
+                const totalReports = reports.filter(r => r.videoId === report.videoId).length;
+                return (
+                <div key={report.id} className="bg-card border border-border p-4 rounded-xl shadow-sm flex flex-col md:flex-row justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                       <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${report.status === 'resolved' ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
+                         {report.status.toUpperCase()}
+                       </span>
+                       <span className="text-muted-foreground text-sm">{new Date(report.createdAt).toLocaleString()}</span>
+                       {totalReports > 1 && (
+                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                           {totalReports} REPORTS
+                         </span>
+                       )}
+                    </div>
+                    <h3 className="font-bold">{report.courseTitle}</h3>
+                    <p className="text-sm text-foreground/80">Video: {report.videoTitle} (ID: <code className="bg-muted px-1 rounded">{report.youtubeId}</code>)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Reported by: {report.userName} {report.userEmail ? `(${report.userEmail})` : ''} {totalReports > 1 ? `and ${totalReports - 1} other(s)` : ''}</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
+                    <button 
+                      onClick={() => setEditingItem({ type: 'course', item: allCourses.find(c => c.id === report.courseId) })}
+                      className="w-full sm:w-auto px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-bold hover:bg-secondary/90 transition-colors"
+                    >
+                      Edit Course
+                    </button>
+                    {report.status === 'pending' && (
+                      <button 
+                        onClick={() => handleResolveReport(report)}
+                        className="w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded-md text-sm font-bold hover:bg-green-600 transition-colors"
+                      >
+                        Mark Fixed & Notify
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )})}
+              
+              {uniqueReports.length > 10 && (
+                <div className="flex justify-center items-center gap-4 mt-6">
+                  <button 
+                    onClick={() => setReportsPage(p => Math.max(1, p - 1))}
+                    disabled={reportsPage === 1}
+                    className="px-4 py-2 bg-secondary disabled:opacity-50 text-secondary-foreground rounded-md text-sm font-bold hover:bg-secondary/90 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm font-medium">Page {reportsPage} of {Math.ceil(uniqueReports.length / 10)}</span>
+                  <button 
+                    onClick={() => setReportsPage(p => Math.min(Math.ceil(uniqueReports.length / 10), p + 1))}
+                    disabled={reportsPage >= Math.ceil(uniqueReports.length / 10)}
+                    className="px-4 py-2 bg-secondary disabled:opacity-50 text-secondary-foreground rounded-md text-sm font-bold hover:bg-secondary/90 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+              </>
+            );})()}
           </div>
         </div>
       )}

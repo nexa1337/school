@@ -66,7 +66,7 @@ export function Creator() {
   return (
     <div className="w-full px-4 md:px-8 py-8 max-w-[1600px] mx-auto min-h-screen">
       <div className="mb-6 flex items-center justify-between">
-        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/courses')} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
+        <button onClick={() => navigate('/')} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
           <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
           {t('back', 'Back')}
         </button>

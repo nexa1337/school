@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 import YouTube, { YouTubeEvent } from 'react-youtube';
 import { useStore } from '../store/useStore';
 import { CheckCircle, Lock, PlayCircle, PauseCircle, ArrowLeft, Maximize, Minimize, Youtube, BookOpen, PenTool, Trash2, BadgeCheck, ChevronRight } from 'lucide-react';
+import { ScrollingText } from '../components/ScrollingText';
 import { cn, filterByLanguage } from '../lib/utils';
 import { motion } from 'motion/react';
-import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export function Course() {
@@ -21,6 +22,8 @@ export function Course() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playerState, setPlayerState] = useState(-1);
   const [hasError, setHasError] = useState(false);
+  const [reportedVideos, setReportedVideos] = useState<Record<string, boolean>>({});
+  const [isReporting, setIsReporting] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'playlist'|'notes'>('playlist');
   const [noteText, setNoteText] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
@@ -94,12 +97,65 @@ export function Course() {
   useEffect(() => {
     // Reset player state when changing videos
     if (courseProgress.currentVideoId) {
+      setHasError(false);
       setPlayerState(-1);
       setIsPlaying(false);
       const savedTime = courseProgress.videoTimestamps?.[courseProgress.currentVideoId] || 0;
       setCurrentTime(savedTime);
     }
   }, [courseProgress.currentVideoId]);
+
+  useEffect(() => {
+    const fetchUserReports = async () => {
+      if (!user || !currentVideo) return;
+      try {
+        const q = query(
+          collection(db, 'reports'), 
+          where('userId', '==', user.uid),
+          where('videoId', '==', currentVideo.id),
+          where('status', '==', 'pending')
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setReportedVideos(prev => ({...prev, [currentVideo.id]: true}));
+        } else {
+          setReportedVideos(prev => ({...prev, [currentVideo.id]: false}));
+        }
+      } catch(e) {
+         console.error('Error fetching reports:', e);
+      }
+    };
+    fetchUserReports();
+  }, [currentVideo, user]);
+
+  const handleReportVideo = async () => {
+    if (!user || !currentVideo || isReporting || reportedVideos[currentVideo.id] || !course) return;
+    setIsReporting(true);
+    try {
+      const reportData: any = {
+        type: 'broken_video',
+        courseId: course.id,
+        courseTitle: course.title,
+        videoId: currentVideo.id,
+        videoTitle: currentVideo.title,
+        youtubeId: currentVideo.youtubeId,
+        userId: user.uid,
+        userName: user.displayName || 'Unknown',
+        userEmail: user.email || '',
+        status: 'pending',
+        createdAt: Date.now()
+      };
+      if (course.category) {
+        reportData.categoryId = course.category;
+      }
+      await addDoc(collection(db, 'reports'), reportData);
+      setReportedVideos(prev => ({ ...prev, [currentVideo.id]: true }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsReporting(false);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -241,7 +297,7 @@ export function Course() {
         {/* Top Bar (Hidden in Focus Mode) */}
         {!isFocusMode && (
           <div className="h-16 flex-shrink-0 flex items-center justify-between px-6 bg-card border-b border-border z-10 sticky top-0">
-            <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/courses')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
+            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
               <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               <span className="font-medium group-hover:underline">{t('back', 'Back')}</span>
             </button>
@@ -316,14 +372,18 @@ export function Course() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    {hasError && !(courseProgress && currentVideo && courseProgress.completedVideoIds.includes(currentVideo.id)) && (
-                      <button 
-                        onClick={() => handleVideoEnd()}
-                        className="px-3 py-1 bg-amber-500 text-white font-bold rounded text-xs shadow hover:bg-amber-600 transition-colors"
-                      >
-                        Skip Broken Video
-                      </button>
-                    )}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleReportVideo(); }}
+                      disabled={isReporting || (currentVideo && reportedVideos[currentVideo.id])}
+                      className={cn(
+                        "px-3 py-1 font-bold rounded text-xs shadow transition-colors",
+                        (currentVideo && reportedVideos[currentVideo.id])
+                          ? "bg-amber-500 text-white cursor-default" 
+                          : "bg-red-500 hover:bg-red-600 text-white"
+                      )}
+                    >
+                      {(currentVideo && reportedVideos[currentVideo.id]) ? 'Report not solved yet' : isReporting ? 'Reporting...' : 'Report Broken Video'}
+                    </button>
                     
                     {progressPercentage >= 95 || (courseProgress && currentVideo && courseProgress.completedVideoIds.includes(currentVideo.id)) ? (
                       currentVideoIndex < courseVideos.length - 1 ? (
@@ -410,8 +470,8 @@ export function Course() {
                     </div>
                   )}
                   <div>
-                    <div className="font-bold text-foreground text-base flex items-center gap-1.5">
-                      {course.instructor}
+                    <div className="font-bold text-foreground text-base flex items-center gap-1.5 max-w-[150px] sm:max-w-[300px]">
+                      <ScrollingText>{course.instructor}</ScrollingText>
                       <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0" />
                     </div>
                     <div className="text-xs text-muted-foreground">{t('original_creator', 'Original Creator')}</div>

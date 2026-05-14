@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { ScrollingText } from '../components/ScrollingText';
 import { Award, PlayCircle, CheckCircle, Trophy, Zap, Gift, Quote, Star, X, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -185,7 +186,9 @@ export function Dashboard() {
                 </div>
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="font-semibold text-lg mb-1 line-clamp-2">{course.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{course.instructor}</p>
+                  <div className="flex mb-4 text-sm text-muted-foreground w-[90%]">
+                    <ScrollingText>{course.instructor}</ScrollingText>
+                  </div>
                   
                   <div className="mt-auto">
                     <div className="flex justify-between text-sm mb-2">
