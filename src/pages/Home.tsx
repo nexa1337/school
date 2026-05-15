@@ -150,6 +150,18 @@ function ModernHero() {
               <Layers className="w-5 h-5 text-fuchsia-500" /> {t('explore_paths')}
             </Link>
           </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 1 }}
+            className="mt-16 text-center"
+          >
+            <p className="font-serif select-none italic text-3xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-zinc-300 to-zinc-500" style={{ fontFamily: 'var(--font-serif), Georgia, serif', letterSpacing: '-0.02em' }}>
+              "Internet For Everyone"
+            </p>
+            <p className="font-mono text-xs sm:text-sm text-fuchsia-500/80 mt-3 tracking-[0.3em]">— N E X A 1 3 3 7</p>
+          </motion.div>
         </motion.div>
       </div>
 

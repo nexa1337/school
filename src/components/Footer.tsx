@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 const LINKS = [
   { name: 'N E X A 1337', url: 'https://nexa1337.github.io/nexa1337', clicks: '112.4K' },
-  { name: 'N E X A 1337 - Portfolio', url: 'https://nexa1337.github.io/Owner', clicks: '89.1K' },
+  { name: 'N E X A 1337 - Secret area', url: 'https://nexa1337.github.io/secretarea', clicks: '89.1K' },
   { name: 'N E X A 1337 - Digital Store', url: 'https://digitalstore-iota-five.vercel.app/', clicks: '76.3K' },
   { name: 'N E X A 1337 - Tool', url: 'https://nexa1337.github.io/tool', clicks: '65.8K' },
   { name: 'N E X A 1337 - Tool V2', url: 'https://nexa1337.github.io/toolv2', clicks: '42.9K' },

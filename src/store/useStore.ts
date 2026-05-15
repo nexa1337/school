@@ -34,7 +34,7 @@ interface StoreState {
   setLanguage: (lang: 'en' | 'ar') => void;
   setUser: (user: any) => void;
   setIsAuthModalOpen: (isOpen: boolean) => void;
-  loadContent: () => Promise<void>;
+  loadContent: (retryCount?: number) => Promise<void>;
   loadProgress: () => Promise<void>;
   markVideoCompleted: (courseId: string, videoId: string, nextVideoId?: string) => Promise<void>;
   setCurrentVideo: (courseId: string, videoId: string) => Promise<void>;
@@ -76,7 +76,7 @@ export const useStore = create<StoreState>()(
         }
       },
       
-      loadContent: async () => {
+      loadContent: async (retryCount = 0) => {
         try {
           const { courses, learningPaths, categories, notifications, banners } = await fetchFirestoreContent();
           
@@ -86,10 +86,20 @@ export const useStore = create<StoreState>()(
             const approvedCourses = courses.filter(c => c.isApproved !== false);
             set({ allCourses: courses, courses: approvedCourses, learningPaths, categories, notifications: notifications || [], banners: loadedBanners, isContentLoading: false });
           } else {
-            set({ courses: defaultCourses, allCourses: defaultCourses, learningPaths: defaultPaths, categories: defaultCategories, notifications: [], banners: defaultBanners, isContentLoading: false });
+            // Only set to empty if it genuinely returned zero courses from DB
+            set({ courses: [], allCourses: [], learningPaths: [], categories: [], notifications: [], banners: defaultBanners, isContentLoading: false });
           }
-        } catch (error) {
-          set({ courses: defaultCourses, allCourses: defaultCourses, learningPaths: defaultPaths, categories: defaultCategories, notifications: [], banners: defaultBanners, isContentLoading: false });
+        } catch (error: any) {
+          console.error("Firestore loading error:", error);
+          if (retryCount < 3) {
+            console.log(`Retrying fetch... (${retryCount + 1}/3)`);
+            setTimeout(() => {
+              get().loadContent(retryCount + 1);
+            }, 1000 * (retryCount + 1));
+          } else {
+            // Keep using the persisted cache if we fail, rather than default test courses.
+            set({ isContentLoading: false });
+          }
         }
       },
 
