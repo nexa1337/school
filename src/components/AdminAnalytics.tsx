@@ -224,7 +224,7 @@ export function AdminAnalytics() {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
-    <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+    <div className="space-y-8 animate-in fade-in zoom-in-95 duration-75">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-4 md:p-6 rounded-2xl flex items-center justify-start gap-4 shadow-sm">
           <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
@@ -313,7 +313,7 @@ export function AdminAnalytics() {
              )}
           </div>
           <div className="flex-1 w-full h-[250px] min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={250} minWidth={0}>
               <AreaChart data={trafficData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">

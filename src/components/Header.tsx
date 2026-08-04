@@ -121,26 +121,19 @@ export function Header() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 sm:gap-3 group shrink-0">
               <Link to="/" className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9">
+                <div className="w-5 h-5 sm:w-6 sm:h-6">
                   <WolfLogo className="group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="flex flex-col leading-none">
-                  <span className="text-foreground font-black text-sm sm:text-xl md:text-xl tracking-wider">N E X A 1337</span>
-                  <div className="flex items-center gap-1">
-                    <motion.span 
-                      animate={{ opacity: [1, 0.4, 1, 0.4, 1] }}
-                      transition={{ 
-                        repeat: Infinity, 
-                        duration: 6, 
-                        times: [0, 0.05, 0.1, 0.15, 1],
-                        ease: "easeOut" 
-                      }}
-                      className="text-[8px] sm:text-[10px] uppercase font-bold tracking-widest text-primary"
-                    >
-                      School
-                    </motion.span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-black text-sm sm:text-xl md:text-xl tracking-wider">Skilliq</span>
                     <span className="text-blue-500">
                       <BadgeCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </span>
+                  </div>
+                  <div className="flex items-center mt-0.5">
+                    <span className="text-[8px] sm:text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                      Internet For Everyone
                     </span>
                   </div>
                 </div>

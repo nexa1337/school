@@ -152,9 +152,11 @@ async function startServer() {
 
     } catch (error: any) {
       console.error('Analytics error:', error);
+      const isInvalidGrant = error?.message?.includes('invalid_grant');
       res.status(200).json({ 
         error: error?.message || 'Failed to fetch analytics', 
-        useDemo: true 
+        useDemo: true,
+        needsAuth: isInvalidGrant
       });
     }
   });

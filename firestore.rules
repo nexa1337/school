@@ -140,7 +140,7 @@ service cloud.firestore {
     }
 
     function isValidNotification(data) {
-      return hasOnlyAllowedFields(['id', 'title', 'message', 'image', 'link', 'linkLogo', 'links', 'isActive', 'createdAt']) &&
+      return hasOnlyAllowedFields(['id', 'title', 'message', 'image', 'link', 'linkLogo', 'links', 'isActive', 'createdAt', 'targetUserId']) &&
              data.id is string && data.id.size() > 0 && data.id.size() <= 100 &&
              data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
              data.message is string && data.message.size() > 0 && data.message.size() <= 10000 &&
@@ -148,7 +148,24 @@ service cloud.firestore {
              isValidOptionalString('link', 0, 2000) &&
              isValidOptionalString('linkLogo', 0, 2000) &&
              (!('links' in data) || (data.links is list && data.links.size() <= 20)) &&
+             isValidOptionalString('targetUserId', 0, 100) &&
              data.isActive is bool &&
+             data.createdAt is number;
+    }
+
+    function isValidReport(data) {
+      return hasOnlyAllowedFields(['type', 'courseId', 'courseTitle', 'categoryId', 'videoId', 'videoTitle', 'youtubeId', 'userId', 'userName', 'userEmail', 'status', 'createdAt']) &&
+             data.type == 'broken_video' &&
+             data.courseId is string && data.courseId.size() > 0 && data.courseId.size() <= 100 &&
+             data.courseTitle is string && data.courseTitle.size() > 0 && data.courseTitle.size() <= 200 &&
+             isValidOptionalString('categoryId', 0, 100) &&
+             data.videoId is string && data.videoId.size() > 0 && data.videoId.size() <= 100 &&
+             data.videoTitle is string && data.videoTitle.size() > 0 && data.videoTitle.size() <= 200 &&
+             data.youtubeId is string && data.youtubeId.size() > 0 && data.youtubeId.size() <= 100 &&
+             data.userId is string && data.userId.size() > 0 && data.userId.size() <= 100 &&
+             data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100 &&
+             isValidOptionalString('userEmail', 0, 200) &&
+             data.status in ['pending', 'resolved'] &&
              data.createdAt is number;
     }
 
@@ -228,6 +245,13 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin() && isValidBanner(request.resource.data) && request.resource.data.id == bannerId;
       allow update: if isAdmin() && isValidBanner(request.resource.data) && request.resource.data.id == resource.data.id;
+      allow delete: if isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidReport(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() && isValidReport(request.resource.data) && request.resource.data.userId == resource.data.userId;
       allow delete: if isAdmin();
     }
 

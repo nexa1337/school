@@ -5,15 +5,15 @@ export function About() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = "About N E X A 1337 - Structured Free Learning";
+    document.title = "About Skilliq - Structured Free Learning";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute("content", "Learn how N E X A 1337 organizes free educational content into structured paths to help students stay focused and consistent.");
+      metaDescription.setAttribute("content", "Learn how Skilliq organizes free educational content into structured paths to help students stay focused and consistent.");
     }
     
     // Reset on unmount
     return () => {
-      document.title = "N E X A 1337 - Free Structured Learning Platform";
+      document.title = "Skilliq - Free Structured Learning Platform";
       if (metaDescription) {
         metaDescription.setAttribute("content", "Explore curated learning paths built from the best free YouTube courses. Learn cybersecurity, coding, design, and more without distractions.");
       }

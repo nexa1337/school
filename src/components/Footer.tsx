@@ -6,11 +6,11 @@ import { Link } from 'react-router-dom';
 
 const LINKS = [
   { name: 'N E X A 1337', url: 'https://nexa1337.github.io/nexa1337', clicks: '112.4K' },
-  { name: 'N E X A 1337 - Portfolio', url: 'https://nexa1337.github.io/Owner', clicks: '89.1K' },
-  { name: 'N E X A 1337 - Digital Store', url: 'https://nexa1337.github.io/digitalstore', clicks: '76.3K' },
+  { name: 'N E X A 1337 - Secret area', url: 'https://secretarea.vercel.app', clicks: '89.1K' },
+  { name: 'N E X A 1337 - Digital Store', url: 'https://digitalstore-iota-five.vercel.app/', clicks: '76.3K' },
   { name: 'N E X A 1337 - Tool', url: 'https://nexa1337.github.io/tool', clicks: '65.8K' },
   { name: 'N E X A 1337 - Tool V2', url: 'https://nexa1337.github.io/toolv2', clicks: '42.9K' },
-  { name: 'N E X A 1337 - School', url: 'https://school-lime-psi.vercel.app', clicks: '34.2K' },
+  { name: 'Skilliq', url: 'https://school-lime-psi.vercel.app', clicks: '34.2K' },
 ];
 
 export function Footer() {
@@ -28,14 +28,13 @@ export function Footer() {
             <Link to="/verify" className="hover:text-primary transition-colors">{t('verify_certificate', 'Verify Certificate')}</Link>
           </div>
           <p className="text-muted-foreground text-sm font-medium">
-            © 2026{' '}
+            © 2026 {t('all_rights_reserved', 'All rights reserved.')} Built by{' '}
             <button 
               onClick={() => setIsPopupOpen(true)}
               className="text-foreground font-bold hover:text-primary transition-colors hover:underline"
             >
               N E X A 1337
             </button>
-            . {t('all_rights_reserved', 'All rights reserved.')}
           </p>
         </div>
       </footer>

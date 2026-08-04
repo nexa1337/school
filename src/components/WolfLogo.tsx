@@ -47,7 +47,7 @@ export function WolfLogo({ className, size }: WolfLogoProps) {
       </motion.div>
 
       {/* Main Logo */}
-      <div className="relative z-10 text-primary flex items-center justify-center w-full h-full [&>svg]:w-full [&>svg]:h-full">
+      <div className="relative z-10 text-black dark:text-foreground flex items-center justify-center w-full h-full [&>svg]:w-full [&>svg]:h-full">
         <FaWolfPackBattalion {...(size ? { size } : {})} />
       </div>
     </div>

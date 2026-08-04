@@ -90,7 +90,7 @@ export function Verify() {
                 </div>
                 <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">Certificate Valid</h3>
                 <p className="text-muted-foreground mb-4 font-mono text-sm">{certId}</p>
-                <p className="text-sm text-emerald-700 dark:text-emerald-300">This is an officially verified certificate issued by N E X A 1337 School.</p>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">This is an officially verified certificate issued by Skilliq.</p>
               </motion.div>
             )}
 

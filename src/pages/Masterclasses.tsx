@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useMemo } from 'react';
 import { cn, filterByLanguage } from '../lib/utils';
 import { useStore } from '../store/useStore';
+import { ScrollingText } from '../components/ScrollingText';
 
 export function Masterclasses() {
   const { t } = useTranslation();
@@ -18,8 +19,9 @@ export function Masterclasses() {
 
   const categories = useMemo(() => {
     const categoriesMap: Record<string, Set<string>> = {};
-    courses.forEach(c => {
-      if (!c.isSingleVideo) return; // Standard playlist
+    const filteredCourses = filterByLanguage(courses, language);
+    filteredCourses.forEach(c => {
+      if (!(c.isSingleVideo === true || String(c.isSingleVideo).toLowerCase() === 'true')) return; // Standard playlist
       const cat = c.category || 'Other';
       if (!categoriesMap[cat]) categoriesMap[cat] = new Set();
       if (c.subCategory) categoriesMap[cat].add(c.subCategory);
@@ -32,14 +34,14 @@ export function Masterclasses() {
         subCategories: Array.from(categoriesMap[k])
       }))
     ];
-  }, [courses]);
+  }, [courses, language]);
 
   const currentCategoryObj = categories.find(c => c.name === selectedCategory);
 
   const filteredMasterclasses = useMemo(() => {
     return filterByLanguage(courses, language)
       .filter(c => {
-        if (!c.isSingleVideo) return false;
+        if (!(c.isSingleVideo === true || String(c.isSingleVideo).toLowerCase() === 'true')) return false;
         const matchCat = selectedCategory === "All" || c.category === selectedCategory;
         const matchSub = selectedSubCategory === "All" || c.subCategory === selectedSubCategory;
         const matchQuery = !searchQuery || 
@@ -87,112 +89,121 @@ export function Masterclasses() {
       <div className="flex flex-col lg:flex-row gap-8 relative">
 
       {/* Smart Sidebar Filter */}
-      <AnimatePresence>
-        {(isSidebarOpen || window.innerWidth >= 1024) && (
-          <motion.aside 
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: window.innerWidth >= 1024 ? 320 : '100%', opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="shrink-0 flex flex-col gap-6"
-          >
-            <div className="sticky top-24 bg-card border border-border p-5 rounded-3xl shadow-sm">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <Filter className="w-5 h-5 text-primary" /> {t('filters', 'Filters')}
-              </h2>
-              
-              {/* Search */}
-              <div className="relative w-full mb-8">
-                <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <input
-                  type="text"
-                  placeholder={t('search_courses', 'Search...') || 'Search masterclasses...'}
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
+      <aside className={cn(
+        "shrink-0 flex flex-col gap-6 w-full lg:w-[320px]",
+        isSidebarOpen ? "block" : "hidden lg:block"
+      )}>
+        <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto pb-8 pr-2">
+          <div className="bg-card/40 backdrop-blur-xl border border-border/60 p-6 rounded-3xl shadow-xl shadow-black/5 flex flex-col gap-8 relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-fuchsia-500" />
+            <h2 className="text-2xl font-black flex items-center gap-3">
+              <div className="bg-primary/20 p-2 rounded-xl text-primary">
+                <Filter className="w-5 h-5" />
+              </div>
+              {t('filters', 'Filters')}
+            </h2>
+            
+            {/* Search */}
+            <div className="relative w-full group">
+              <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+                <Search className="h-5 w-5" />
+              </div>
+              <input
+                type="text"
+                placeholder={t('search_courses', 'Search playlists...') || 'Search masterclasses...'}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="block w-full ps-12 pe-10 py-4 border border-border/50 rounded-2xl bg-background/50 backdrop-blur-sm text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-background transition-all outline-none shadow-inner placeholder:text-muted-foreground/70"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
                     setCurrentPage(1);
                   }}
-                  className="block w-full ps-10 pe-10 py-3 border border-border rounded-2xl bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:font-normal"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setCurrentPage(1);
-                    }}
-                    className="absolute inset-y-0 end-0 pe-4 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+                  className="absolute inset-y-0 end-0 pe-4 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-5 w-5 bg-muted rounded-full p-1" />
+                </button>
+              )}
+            </div>
 
-              {/* Categories */}
-              <div className="mb-6">
-                <h3 className="text-xs uppercase font-extrabold text-muted-foreground mb-4 tracking-widest ps-2">{t('categories', 'Categories')}</h3>
-                <div className="flex flex-col gap-1.5">
-                  {categories.map(category => (
+            {/* Categories */}
+            <div>
+              <h3 className="text-[10px] uppercase font-black text-muted-foreground mb-4 tracking-[0.2em] ps-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                {t('categories', 'Categories')}
+              </h3>
+              <div className="flex flex-col gap-2">
+                {categories.map(category => (
+                  <button
+                    key={category.name}
+                    onClick={() => handleCategoryClick(category.name)}
+                    className={cn(
+                      "text-start px-5 py-3.5 rounded-2xl text-sm font-bold transition-all duration-150 flex justify-between items-center group cursor-pointer border",
+                      selectedCategory === category.name 
+                        ? "bg-foreground text-background border-foreground shadow-lg shadow-black/10 scale-[1.02]" 
+                        : "bg-background/40 border-border/40 hover:bg-muted/80 text-muted-foreground hover:text-foreground hover:border-border"
+                    )}
+                  >
+                    <span>{category.name === 'All' ? t('all') : category.name}</span>
+                    {selectedCategory === category.name && (
+                      <span className="w-2 h-2 rounded-full bg-background animate-pulse" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sub-Categories */}
+            <AnimatePresence>
+              {currentCategoryObj && currentCategoryObj.subCategories.length > 0 && selectedCategory !== 'All' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <h3 className="text-[10px] uppercase font-black text-muted-foreground mb-4 tracking-[0.2em] border-t border-border/40 pt-6 ps-1 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500/60"></span>
+                    {t('topics', 'Topics')}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={category.name}
-                      onClick={() => handleCategoryClick(category.name)}
+                      onClick={() => handleSubCategoryClick("All")}
                       className={cn(
-                        "text-start px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex justify-between items-center group",
-                        selectedCategory === category.name 
-                          ? "bg-primary text-primary-foreground shadow-sm" 
-                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 border",
+                        selectedSubCategory === "All" 
+                          ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+                          : "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
                       )}
                     >
-                      {category.name === 'All' ? t('all') : category.name}
+                      All
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sub-Categories */}
-              <AnimatePresence>
-                {currentCategoryObj && currentCategoryObj.subCategories.length > 0 && selectedCategory !== 'All' && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <h3 className="text-xs uppercase font-extrabold text-muted-foreground mb-4 tracking-widest border-t border-border/50 pt-6 ps-2">{t('topics', 'Topics')}</h3>
-                    <div className="flex flex-wrap gap-2 ps-2">
+                    {currentCategoryObj.subCategories.map(sub => (
                       <button
-                        onClick={() => handleSubCategoryClick("All")}
+                        key={sub}
+                        onClick={() => handleSubCategoryClick(sub)}
                         className={cn(
-                          "px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200",
-                          selectedSubCategory === "All" 
-                            ? "bg-foreground text-background" 
-                            : "bg-muted text-muted-foreground hover:text-foreground"
+                          "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 border",
+                          selectedSubCategory === sub 
+                            ? "bg-primary text-primary-foreground border-primary shadow-md scale-105" 
+                            : "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
                         )}
                       >
-                        All
+                        {sub}
                       </button>
-                      {currentCategoryObj.subCategories.map(sub => (
-                        <button
-                          key={sub}
-                          onClick={() => handleSubCategoryClick(sub)}
-                          className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200",
-                            selectedSubCategory === sub 
-                              ? "bg-foreground text-background" 
-                              : "bg-muted text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          {sub}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 min-w-0">
@@ -208,7 +219,7 @@ export function Masterclasses() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5"
+            className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-75 hover:-translate-y-1.5"
           >
             <div className="relative aspect-video overflow-hidden bg-muted">
               {course.language && (
@@ -228,8 +239,8 @@ export function Masterclasses() {
                   <span className="text-muted-foreground font-medium text-center">{course.title}</span>
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-300">
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-75 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-75">
                   <PlayCircle className="w-10 h-10" />
                 </div>
               </div>
@@ -253,22 +264,22 @@ export function Masterclasses() {
                   <Clock className="w-4 h-4 text-primary" />
                   <span className="font-semibold">{t('one_video', 'One Video')}</span>
                 </div>
-                <div className="flex items-center gap-1 font-medium text-foreground">
-                  {course.instructor}
+                <div className="flex items-center gap-1 font-medium text-foreground max-w-[50%]">
+                  <ScrollingText>{course.instructor}</ScrollingText>
                 </div>
               </div>
 
               {user ? (
                 <Link 
                   to={`/course/${course.id}`}
-                  className="w-full mt-auto py-3.5 bg-foreground text-background rounded-xl font-bold text-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 active:scale-[0.98] shadow-md flex items-center justify-center relative overflow-hidden group/btn"
+                  className="w-full mt-auto py-3.5 bg-foreground text-background rounded-xl font-bold text-center hover:bg-primary hover:text-primary-foreground transition-all duration-75 active:scale-[0.98] shadow-md flex items-center justify-center relative overflow-hidden group/btn"
                 >
                   <span className="relative z-10">{t('start_learning')}</span>
                 </Link>
               ) : (
                 <button 
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="w-full mt-auto py-3.5 bg-foreground text-background rounded-xl font-bold text-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 active:scale-[0.98] shadow-md flex items-center justify-center relative overflow-hidden group/btn"
+                  className="w-full mt-auto py-3.5 bg-foreground text-background rounded-xl font-bold text-center hover:bg-primary hover:text-primary-foreground transition-all duration-75 active:scale-[0.98] shadow-md flex items-center justify-center relative overflow-hidden group/btn"
                 >
                   <span className="relative z-10">{t('login_to_start')}</span>
                 </button>

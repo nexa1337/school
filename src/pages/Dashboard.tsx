@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { ScrollingText } from '../components/ScrollingText';
 import { Award, PlayCircle, CheckCircle, Trophy, Zap, Gift, Quote, Star, X, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -76,7 +77,7 @@ export function Dashboard() {
               </div>
               <div className="w-full bg-muted rounded-full h-2 overflow-hidden mt-3 mb-1">
                 <div 
-                  className="bg-primary h-full transition-all duration-500" 
+                  className="bg-primary h-full transition-all duration-150" 
                   style={{ width: `${(xp % 100)}%` }}
                 />
               </div>
@@ -185,7 +186,9 @@ export function Dashboard() {
                 </div>
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="font-semibold text-lg mb-1 line-clamp-2">{course.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{course.instructor}</p>
+                  <div className="flex mb-4 text-sm text-muted-foreground w-[90%]">
+                    <ScrollingText>{course.instructor}</ScrollingText>
+                  </div>
                   
                   <div className="mt-auto">
                     <div className="flex justify-between text-sm mb-2">
@@ -194,44 +197,41 @@ export function Dashboard() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-4">
                       <div 
-                        className={`h-full transition-all duration-500 ${isCompleted ? 'bg-green-500' : 'bg-primary'}`} 
+                        className={`h-full transition-all duration-150 ${isCompleted ? 'bg-green-500' : 'bg-primary'}`} 
                         style={{ width: `${percentComplete}%` }}
                       />
                     </div>
                     
-                    <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 mt-auto">
+                    <div className="grid grid-cols-2 gap-2 mt-auto">
                       {isCompleted ? (
                         <>
                           <button 
                             onClick={() => setReviewModalCourseId(course.id)}
                             disabled={submittedReviews[course.id]}
-                            className="flex-1 min-w-[100px] py-2 px-3 bg-foreground text-background rounded-lg font-bold text-center hover:bg-foreground/90 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap overflow-hidden text-ellipsis"
+                            className="w-full py-2 px-2 bg-foreground text-background rounded-lg font-bold text-center hover:bg-foreground/90 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap overflow-hidden text-ellipsis"
                           >
                             {submittedReviews[course.id] ? 'Reviewed' : t('review_course')}
                           </button>
                           <Link 
                             to={`/course/${course.id}`}
-                            className="flex-1 py-2 px-3 bg-muted text-foreground border border-border rounded-lg font-bold text-center hover:bg-muted/80 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow whitespace-nowrap min-w-[80px]"
+                            className="w-full py-2 px-2 bg-muted text-foreground border border-border rounded-lg font-bold text-center hover:bg-muted/80 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow whitespace-nowrap"
                           >
                             Re-watch
+                          </Link>
+                          <Link 
+                            to={`/certificate/${course.id}`}
+                            className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow whitespace-nowrap"
+                          >
+                            <Award className="w-4 h-4" />
+                            {t('certificate')}
                           </Link>
                         </>
                       ) : (
                         <Link 
                           to={`/course/${course.id}`}
-                          className="flex-1 py-2 px-3 bg-foreground text-background rounded-lg font-bold text-center hover:bg-foreground/90 active:scale-[0.98] transition-all text-sm shadow-sm hover:shadow"
+                          className="col-span-2 py-2 px-3 bg-foreground text-background rounded-lg font-bold text-center hover:bg-foreground/90 active:scale-[0.98] transition-all text-sm shadow-sm hover:shadow"
                         >
                           {t('continue_learning')}
-                        </Link>
-                      )}
-                      
-                      {isCompleted && (
-                        <Link 
-                          to={`/certificate/${course.id}`}
-                          className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90 active:scale-[0.98] transition-all text-xs sm:text-sm shadow-sm hover:shadow whitespace-nowrap w-full sm:w-auto"
-                        >
-                          <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          {t('certificate')}
                         </Link>
                       )}
                     </div>

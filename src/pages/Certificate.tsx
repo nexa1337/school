@@ -149,12 +149,12 @@ export function Certificate() {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/verify?id=${certId}`;
-    const text = `I just earned a certificate in ${course.title} from N E X A 1337! 🚀`;
+    const text = `I just earned a certificate in ${course.title} from Skilliq! 🚀`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'My N E X A 1337 Certificate',
+          title: 'My Skilliq Certificate',
           text,
           url,
         });
@@ -169,7 +169,7 @@ export function Certificate() {
   return (
     <div className="w-full px-4 md:px-8 py-8 min-h-screen bg-muted/30">
       <div className="flex items-center justify-between mb-8 max-w-5xl mx-auto print:hidden">
-        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/certificates')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors w-fit group">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors w-fit group">
           <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           <span className="font-medium group-hover:underline">{t('back', 'Back')}</span>
         </button>
@@ -240,10 +240,10 @@ export function Certificate() {
             {/* School Header */}
             <div className="absolute top-10 start-0 end-0 flex justify-center items-center gap-3">
               <span className="text-slate-800 font-black text-2xl tracking-[0.3em] uppercase whitespace-nowrap">
-                N E X A 1337
+                Skilliq
               </span>
               <div className="flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                <span className="text-[10px] font-bold text-primary tracking-widest uppercase">School</span>
+                <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Learn</span>
                 <span className="text-blue-500">
                   <BadgeCheck className="w-3 h-3" />
                 </span>
@@ -288,11 +288,11 @@ export function Certificate() {
 
                 {/* Secure Stamp (Hidden During Download) */}
                 <div className={`col-start-2 flex justify-center items-center min-h-[120px] hide-on-download ${isDownloading ? 'invisible' : 'visible'}`}>
-                  <div className="relative w-28 h-28 flex items-center justify-center opacity-90 hover:scale-105 transition-transform duration-500">
+                  <div className="relative w-28 h-28 flex items-center justify-center opacity-90 hover:scale-105 transition-transform duration-150">
                     <div className="absolute inset-0 rounded-full border-4 border-amber-500 border-dashed animate-[spin_60s_linear_infinite]" />
                     <div className="absolute inset-2 rounded-full border bg-amber-50 flex flex-col items-center justify-center text-amber-600 shadow-inner">
                       <ShieldCheck className="w-8 h-8 mb-0.5 text-amber-500" />
-                      <span className="text-[8px] font-black uppercase tracking-tight leading-none text-amber-700">N E X A 1337</span>
+                      <span className="text-[8px] font-black uppercase tracking-tight leading-none text-amber-700">Skilliq</span>
                       <span className="text-[7.5px] font-bold uppercase tracking-tighter leading-none mt-1 opacity-80">{t('officially_verified')}</span>
                     </div>
                   </div>
@@ -317,7 +317,7 @@ export function Certificate() {
               </div>
               <div className="text-end">
                 <span className="uppercase font-bold tracking-wider">{t('verify_at')}</span><br/>
-                <span className="text-slate-600 font-bold">nexa1337.com/verify</span>
+                <span className="text-slate-600 font-bold">skilliq.com/verify</span>
               </div>
             </div>
 

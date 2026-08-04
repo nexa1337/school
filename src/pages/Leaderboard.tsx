@@ -46,7 +46,7 @@ export function Leaderboard() {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-150">
         <div className="text-center space-y-4 pt-4 sm:pt-8">
           <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full mb-2">
             <Trophy className="w-10 h-10 sm:w-16 sm:h-16 text-primary" />

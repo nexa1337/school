@@ -38,7 +38,7 @@ export function BottomNav() {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center p-1 sm:p-2 rounded-xl transition-all duration-300 w-12 sm:w-14",
+                  "flex flex-col items-center justify-center p-1 sm:p-2 rounded-xl transition-all duration-75 w-12 sm:w-14",
                   isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )
               }

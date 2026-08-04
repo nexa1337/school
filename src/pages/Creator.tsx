@@ -66,7 +66,7 @@ export function Creator() {
   return (
     <div className="w-full px-4 md:px-8 py-8 max-w-[1600px] mx-auto min-h-screen">
       <div className="mb-6 flex items-center justify-between">
-        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/courses')} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
           <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
           {t('back', 'Back')}
         </button>
@@ -122,7 +122,7 @@ export function Creator() {
                         key={category}
                         onClick={() => setSelectedCategory(category)}
                         className={cn(
-                          "text-start px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex justify-between items-center group",
+                          "text-start px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-75 flex justify-between items-center group",
                           selectedCategory === category 
                             ? "bg-primary text-primary-foreground shadow-sm" 
                             : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -197,7 +197,7 @@ export function Creator() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5"
+                className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-75 hover:-translate-y-1.5"
               >
                 <Link to={`/course/${course.id}`} className="block relative aspect-video overflow-hidden bg-muted">
                   {course.language && (
@@ -217,8 +217,8 @@ export function Creator() {
                       <span className="text-muted-foreground font-medium text-center">{course.title}</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-75 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-75">
                       <PlayCircle className="w-10 h-10" />
                     </div>
                   </div>
@@ -254,7 +254,7 @@ export function Creator() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5"
+                className="group flex flex-col bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-75 hover:-translate-y-1.5"
               >
                 <Link to={`/course/${course.id}`} className="block relative aspect-video overflow-hidden bg-muted">
                   {course.language && (
@@ -274,8 +274,8 @@ export function Creator() {
                       <span className="text-muted-foreground font-medium text-center">{course.title}</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-75 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="w-16 h-16 bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center shadow-2xl ps-1 text-white scale-90 group-hover:scale-100 transition-transform duration-75">
                       <PlayCircle className="w-10 h-10" />
                     </div>
                   </div>
