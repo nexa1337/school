@@ -4,36 +4,30 @@
  */
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect, Suspense, lazy } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HelmetProvider } from 'react-helmet-async';
 import { useStore } from './store/useStore';
 import { Layout } from './components/Layout';
 import { WhatsNew } from './components/WhatsNew';
 import { PushNotificationPopup } from './components/PushNotificationPopup';
-import { Loader2 } from 'lucide-react';
 
-const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
-const Courses = lazy(() => import('./pages/Courses').then(m => ({ default: m.Courses })));
-const Paths = lazy(() => import('./pages/Paths').then(m => ({ default: m.Paths })));
-const Course = lazy(() => import('./pages/Course').then(m => ({ default: m.Course })));
-const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const Certificate = lazy(() => import('./pages/Certificate').then(m => ({ default: m.Certificate })));
-const CertificatesList = lazy(() => import('./pages/CertificatesList').then(m => ({ default: m.CertificatesList })));
-const PathDetails = lazy(() => import('./pages/PathDetails').then(m => ({ default: m.PathDetails })));
-const Masterclasses = lazy(() => import('./pages/Masterclasses').then(m => ({ default: m.Masterclasses })));
-const Verify = lazy(() => import('./pages/Verify').then(m => ({ default: m.Verify })));
-const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
-const Leaderboard = lazy(() => import('./pages/Leaderboard').then(m => ({ default: m.Leaderboard })));
-const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
-const Copyright = lazy(() => import('./pages/Copyright').then(m => ({ default: m.Copyright })));
-const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
-const Creator = lazy(() => import('./pages/Creator').then(m => ({ default: m.Creator })));
-
-const SuspenseLoader = () => (
-  <div className="w-full h-screen flex items-center justify-center bg-background">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  </div>
-);
+import { Home } from './pages/Home';
+import { Courses } from './pages/Courses';
+import { Paths } from './pages/Paths';
+import { Course } from './pages/Course';
+import { Dashboard } from './pages/Dashboard';
+import { Certificate } from './pages/Certificate';
+import { CertificatesList } from './pages/CertificatesList';
+import { PathDetails } from './pages/PathDetails';
+import { Masterclasses } from './pages/Masterclasses';
+import { Verify } from './pages/Verify';
+import { Admin } from './pages/Admin';
+import { Leaderboard } from './pages/Leaderboard';
+import { About } from './pages/About';
+import { Copyright } from './pages/Copyright';
+import { Contact } from './pages/Contact';
+import { Creator } from './pages/Creator';
 
 export default function App() {
   const { loadContent, language } = useStore();
@@ -50,10 +44,10 @@ export default function App() {
   }, [language, i18n]);
 
   return (
-    <Router>
-      <WhatsNew />
-      <PushNotificationPopup />
-      <Suspense fallback={<SuspenseLoader />}>
+    <HelmetProvider>
+      <Router>
+        <WhatsNew />
+        <PushNotificationPopup />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
@@ -74,7 +68,7 @@ export default function App() {
           </Route>
           <Route path="/course/:courseId" element={<Course />} />
         </Routes>
-      </Suspense>
-    </Router>
+      </Router>
+    </HelmetProvider>
   );
 }

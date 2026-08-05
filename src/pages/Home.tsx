@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { PlayCircle, BookOpen, Code, Terminal, Layout, Database, Shield, ArrowRight, Zap, Target, Award, CheckCircle2, ChevronRight, Video, Users, Github, Youtube, Cloud, Search, BarChart3, Star, Layers } from 'lucide-react';
 import { motion, useScroll, useTransform, useMotionValue, useSpring, useMotionTemplate } from 'motion/react';
@@ -72,7 +73,7 @@ function ModernHero() {
 
   return (
     <section 
-      className="relative w-full overflow-hidden bg-background py-20 lg:py-32 min-h-[90vh] flex items-center justify-center group"
+      className="relative w-full overflow-hidden bg-background pt-12 pb-20 lg:pt-16 lg:pb-32 min-h-[80vh] group"
       onMouseMove={handleMouseMove}
     >
       {/* Background Effects */}
@@ -95,7 +96,7 @@ function ModernHero() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10 w-full mt-10 md:mt-0">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Left Content Area */}
@@ -506,6 +507,10 @@ export function Home() {
 
   return (
     <div className="w-full">
+      <Helmet>
+        <title>Skilliq | Free Structured Learning Platform & Masterclasses</title>
+        <meta name="description" content="Skilliq offers a premium, distraction-free learning environment. Access curated courses, masterclasses, and guided paths in tech, design, and cybersecurity entirely for free." />
+      </Helmet>
       <ModernHero />
       <PartnersSection />
 
