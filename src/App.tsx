@@ -11,6 +11,7 @@ import { useStore } from './store/useStore';
 import { Layout } from './components/Layout';
 import { WhatsNew } from './components/WhatsNew';
 import { PushNotificationPopup } from './components/PushNotificationPopup';
+import { CustomCursor } from './components/CustomCursor';
 
 import { Home } from './pages/Home';
 import { Courses } from './pages/Courses';
@@ -45,6 +46,7 @@ export default function App() {
 
   return (
     <HelmetProvider>
+      <CustomCursor />
       <Router>
         <WhatsNew />
         <PushNotificationPopup />
