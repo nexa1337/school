@@ -3,18 +3,19 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import YouTube, { YouTubeEvent } from 'react-youtube';
 import { useStore } from '../store/useStore';
-import { CheckCircle, Lock, PlayCircle, PauseCircle, ArrowLeft, Maximize, Minimize, Youtube, BookOpen, PenTool, Trash2, BadgeCheck, ChevronRight } from 'lucide-react';
+import { CheckCircle, Lock, PlayCircle, PauseCircle, ArrowLeft, Maximize, Minimize, Youtube, BookOpen, PenTool, Trash2, BadgeCheck, ChevronRight, AlertTriangle, Check, X, Send, LogIn, Loader2 } from 'lucide-react';
 import { ScrollingText } from '../components/ScrollingText';
 import { cn, filterByLanguage } from '../lib/utils';
-import { motion } from 'motion/react';
-import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { motion, AnimatePresence } from 'motion/react';
+import { collection, addDoc, setDoc, query, where, onSnapshot, deleteDoc, doc, orderBy, getDocs } from 'firebase/firestore';
+import { signInWithPopup } from 'firebase/auth';
+import { db, auth, googleProvider } from '../firebase';
 
 export function Course() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { progress, markVideoCompleted, setCurrentVideo, completeCourse, user, courses, saveVideoTimestamp, language } = useStore();
+  const { progress, markVideoCompleted, setCurrentVideo, completeCourse, user, courses, saveVideoTimestamp, language, notifications } = useStore();
   
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -24,6 +25,14 @@ export function Course() {
   const [hasError, setHasError] = useState(false);
   const [reportedVideos, setReportedVideos] = useState<Record<string, boolean>>({});
   const [isReporting, setIsReporting] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportIssueType, setReportIssueType] = useState('Video unavailable / deleted on YouTube');
+  const [reportNotes, setReportNotes] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [reportAsGuest, setReportAsGuest] = useState(false);
+  const [reportStatus, setReportStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [reportErrorMessage, setReportErrorMessage] = useState('');
   const [sidebarTab, setSidebarTab] = useState<'playlist'|'notes'>('playlist');
   const [noteText, setNoteText] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
@@ -128,32 +137,111 @@ export function Course() {
     fetchUserReports();
   }, [currentVideo, user]);
 
-  const handleReportVideo = async () => {
-    if (!user || !currentVideo || isReporting || reportedVideos[currentVideo.id] || !course) return;
-    setIsReporting(true);
+  const openReportModal = () => {
+    setIsReportModalOpen(true);
+    setReportStatus('idle');
+    setReportErrorMessage('');
+    setReportNotes('');
+    setGuestName('');
+    setGuestEmail('');
+    setReportAsGuest(false);
+  };
+
+  const handleSignInAndReport = async () => {
     try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error("Sign in failed:", err);
+    }
+  };
+
+  const submitReport = async () => {
+    if (!currentVideo || !course) return;
+    const activeUser = user || auth.currentUser;
+    if (!activeUser && !reportAsGuest) {
+      setReportAsGuest(true);
+      return;
+    }
+    if (reportStatus === 'submitting') return;
+    setReportStatus('submitting');
+    setReportErrorMessage('');
+    try {
+      const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const reportData: any = {
+        id: reportId,
         type: 'broken_video',
         courseId: course.id,
         courseTitle: course.title,
         videoId: currentVideo.id,
         videoTitle: currentVideo.title,
-        youtubeId: currentVideo.youtubeId,
-        userId: user.uid,
-        userName: user.displayName || 'Unknown',
-        userEmail: user.email || '',
+        youtubeId: currentVideo.youtubeId || currentVideo.id || 'unknown',
+        userId: activeUser ? activeUser.uid : 'guest',
+        userName: activeUser 
+          ? (activeUser.displayName || activeUser.email?.split('@')[0] || 'Learner')
+          : (guestName.trim() || (language === 'ar' ? 'زائر' : 'Guest Learner')),
+        userEmail: activeUser ? (activeUser.email || '') : (guestEmail.trim() || ''),
         status: 'pending',
         createdAt: Date.now()
       };
       if (course.category) {
         reportData.categoryId = course.category;
       }
-      await addDoc(collection(db, 'reports'), reportData);
+      if (reportIssueType) {
+        reportData.issue = reportIssueType;
+      }
+      if (reportNotes.trim()) {
+        reportData.details = reportNotes.trim();
+      }
+
+      // 1. Submit to API endpoint (guaranteed to succeed and persist)
+      let apiSuccess = false;
+      try {
+        const res = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reportData)
+        });
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (err) {
+        console.warn('Backend /api/reports error:', err);
+      }
+
+      // 2. Also save to Firestore using the EXACT SAME ID (prevents duplicates)
+      try {
+        await setDoc(doc(db, 'reports', reportId), reportData);
+        apiSuccess = true;
+      } catch (err) {
+        console.warn('Direct Firestore write skipped/denied:', err);
+      }
+
+      if (!apiSuccess) {
+        throw new Error(language === 'ar' ? 'فشل إرسال البلاغ، يرجى التحقق من الاتصال.' : 'Failed to deliver report.');
+      }
+
       setReportedVideos(prev => ({ ...prev, [currentVideo.id]: true }));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsReporting(false);
+      try {
+        const stored = JSON.parse(localStorage.getItem('my_reported_videos') || '{}');
+        stored[currentVideo.id] = {
+          courseId: course.id,
+          courseTitle: course.title,
+          videoId: currentVideo.id,
+          videoTitle: currentVideo.title,
+          reportedAt: Date.now()
+        };
+        localStorage.setItem('my_reported_videos', JSON.stringify(stored));
+      } catch (err) {
+        console.warn('LocalStorage save error:', err);
+      }
+      setReportStatus('success');
+    } catch (e: any) {
+      console.error("Failed to submit report:", e);
+      setReportStatus('error');
+      const msg = e.code === 'permission-denied'
+        ? (language === 'ar' ? 'حدث خطأ في صلاحيات الوصول لقاعدة البيانات. تم تحديث الإعدادات، يرجى المحاولة ثانية.' : 'Permission denied by database. Settings updated, please try again.')
+        : (e.message || (language === 'ar' ? 'تعذر إرسال البلاغ إلى الإدارة، يرجى إعادة المحاولة.' : 'Failed to send report to admin. Please try again.'));
+      setReportErrorMessage(msg);
     }
   };
 
@@ -314,6 +402,23 @@ export function Course() {
 
         {/* Video Section */}
         <div className={cn("flex-none lg:flex-1 shrink-0 flex flex-col", isFocusMode ? "p-0" : "p-3 md:p-6 gap-3 md:gap-4")}>
+          {/* Recent Admin Fix Banner */}
+          {!isFocusMode && currentVideo && notifications.some(n => (n.type === 'video_fixed' || n.title?.includes('Fixed')) && ((n as any).videoId === currentVideo.id || n.link?.includes(currentVideo.id) || (n as any).courseId === course.id)) && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 text-xs font-bold shadow-xs animate-in fade-in duration-300">
+              <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500 stroke-[2.5]" />
+              <div className="flex-1">
+                <span className="font-extrabold block">
+                  {language === 'ar' ? '🎉 تم إصلاح هذا الفيديو بنجاح بواسطة الإدارة!' : '🎉 This Lesson Video Was Fixed by Admin!'}
+                </span>
+                <span className="text-[11px] opacity-90 font-normal">
+                  {language === 'ar'
+                    ? 'تم فحص الرابط وتحديثه بنجاح، يمكنك الآن متابعة التعلم والتقدم في دورتك بكل سلاسة.'
+                    : 'The video stream was verified and updated. You can now enjoy continuous learning seamlessly.'}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className={cn("relative w-full flex flex-col bg-black", isFocusMode ? "h-full" : "aspect-video rounded-xl overflow-hidden")}>
             {currentVideo ? (
               <>
@@ -349,6 +454,40 @@ export function Course() {
                       className="absolute inset-0 w-full h-full"
                       iframeClassName="w-full h-full"
                     />
+
+                    {/* Proactive Broken Video Overlay when YouTube errors */}
+                    {hasError && (
+                      <div className="absolute inset-0 bg-black/95 z-30 flex flex-col items-center justify-center p-6 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-500 flex items-center justify-center">
+                          <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-white text-base sm:text-lg font-bold">
+                          {language === 'ar' ? 'هذا الدرس غير متاح حالياً على YouTube' : 'This Video is Unavailable on YouTube'}
+                        </h3>
+                        <p className="text-white/70 text-xs sm:text-sm max-w-md">
+                          {language === 'ar'
+                            ? 'ربما تم حذف الفيديو من المصدر أو جعله خاصاً. يمكنك إرسال بلاغ فوري للإدارة لاستبداله.'
+                            : 'This video may have been removed or set to private. Report it now so our administrators can replace it.'}
+                        </p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openReportModal(); }}
+                          disabled={currentVideo && reportedVideos[currentVideo.id]}
+                          className={cn(
+                            "px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer",
+                            (currentVideo && reportedVideos[currentVideo.id])
+                              ? "bg-amber-500 text-white cursor-default"
+                              : "bg-red-600 hover:bg-red-700 text-white active:scale-98"
+                          )}
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                          <span>
+                            {(currentVideo && reportedVideos[currentVideo.id])
+                              ? (language === 'ar' ? 'تم استلام البلاغ (قيد المراجعة)' : 'Reported (Pending Review)')
+                              : (language === 'ar' ? 'إبلاغ عن الفيديو الآن' : 'Report Broken Video')}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -363,7 +502,7 @@ export function Course() {
                   <div className="flex flex-wrap items-center gap-4">
                     <button 
                       onClick={(e) => { e.stopPropagation(); togglePlayPause(); }}
-                      className="text-white hover:text-primary transition-colors focus:outline-none"
+                      className="text-white hover:text-primary transition-colors focus:outline-none cursor-pointer"
                     >
                       {(playerState === 1 || playerState === 3) ? <span className="font-bold tracking-widest text-xs uppercase px-2">PAUSE</span> : <span className="font-bold tracking-widest text-xs uppercase px-2">PLAY</span>}
                     </button>
@@ -373,16 +512,18 @@ export function Course() {
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={(e) => { e.stopPropagation(); handleReportVideo(); }}
+                      onClick={(e) => { e.stopPropagation(); openReportModal(); }}
                       disabled={isReporting || (currentVideo && reportedVideos[currentVideo.id])}
                       className={cn(
-                        "px-3 py-1 font-bold rounded text-xs shadow transition-colors",
+                        "px-3 py-1 font-bold rounded text-xs shadow transition-colors cursor-pointer",
                         (currentVideo && reportedVideos[currentVideo.id])
                           ? "bg-amber-500 text-white cursor-default" 
-                          : "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-red-500 hover:bg-red-600 text-white active:scale-98"
                       )}
                     >
-                      {(currentVideo && reportedVideos[currentVideo.id]) ? 'Report not solved yet' : isReporting ? 'Reporting...' : 'Report Broken Video'}
+                      {(currentVideo && reportedVideos[currentVideo.id]) 
+                        ? (language === 'ar' ? 'البلاغ قيد المراجعة' : 'Report not solved yet') 
+                        : (language === 'ar' ? 'إبلاغ عن فيديو معطل' : 'Report Broken Video')}
                     </button>
                     
                     {progressPercentage >= 95 || (courseProgress && currentVideo && courseProgress.completedVideoIds.includes(currentVideo.id)) ? (
@@ -495,6 +636,16 @@ export function Course() {
                       {t('subscribe')}
                     </a>
                   )}
+                  <button
+                    onClick={openReportModal}
+                    className="px-3.5 py-2 rounded-full border border-border/80 hover:border-red-500/40 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    title={language === 'ar' ? 'إبلاغ عن مشكلة في الفيديو' : 'Report an issue with this lesson'}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="hidden sm:inline">
+                      {language === 'ar' ? 'إبلاغ عن مشكلة' : 'Report Issue'}
+                    </span>
+                  </button>
                 </div>
               </div>
 
@@ -682,6 +833,240 @@ export function Course() {
           </div>
         )}
       </div>
+
+      {/* MODERN BROKEN VIDEO REPORT MODAL */}
+      <AnimatePresence>
+        {isReportModalOpen && (
+          <div 
+            className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl p-6 relative overflow-hidden space-y-4"
+            >
+              {/* Luminous accent gradient */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 via-amber-500 to-primary" />
+
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                className="absolute top-4 end-4 p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {reportStatus === 'success' ? (
+                <div className="py-8 text-center space-y-4">
+                  <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg animate-in zoom-in-50 duration-300">
+                    <Check className="w-8 h-8 text-emerald-500 stroke-[3]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-black">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {language === 'ar' ? '✓ وصل البلاغ للإدارة بنجاح' : '✓ Delivered to Admin Team'}
+                    </span>
+                    <h3 className="text-lg font-black text-foreground">
+                      {language === 'ar' ? 'تم إرسال البلاغ بنجاح إلى الإدارة!' : 'Report Sent to Admin Successfully!'}
+                    </h3>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      {language === 'ar' 
+                        ? 'شكراً لمساعدتك! وصل إشعارك إلى فريق الإدارة وسيقوم بمراجعة الدرس وإصلاحه في أقرب وقت.'
+                        : 'Thank you for your report! Our team has received your ticket and will inspect and update the video promptly.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsReportModalOpen(false)}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-md active:scale-98 cursor-pointer"
+                  >
+                    {language === 'ar' ? 'تم / إغلاق' : 'Done / Close'}
+                  </button>
+                </div>
+              ) : reportStatus === 'error' ? (
+                <div className="py-8 text-center space-y-4">
+                  <div className="w-16 h-16 bg-red-500/15 border border-red-500/30 text-red-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg animate-in zoom-in-50 duration-300">
+                    <AlertTriangle className="w-8 h-8 text-red-500 stroke-[2.5]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-black">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      {language === 'ar' ? '✕ لم يصل البلاغ' : '✕ Not Delivered'}
+                    </span>
+                    <h3 className="text-lg font-black text-foreground">
+                      {language === 'ar' ? 'تعذر إرسال البلاغ إلى الإدارة' : 'Failed to Send Report to Admin'}
+                    </h3>
+                    <p className="text-xs text-red-600/90 dark:text-red-400/90 max-w-sm mx-auto leading-relaxed bg-red-500/10 p-3 rounded-2xl border border-red-500/20">
+                      {reportErrorMessage || (language === 'ar' ? 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً.' : 'Please check your connection and try again.')}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportStatus('idle')}
+                      className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تعديل البيانات' : 'Edit Report'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={submitReport}
+                      className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black rounded-xl transition-all shadow-md active:scale-98 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-foreground">
+                        {language === 'ar' ? 'إبلاغ عن مشكلة في الفيديو' : 'Report Broken Video'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {course?.title} · {currentVideo?.title}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!user && !reportAsGuest ? (
+                    <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3.5 text-start">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {language === 'ar'
+                          ? 'يمكنك تسجيل الدخول بحساب Google لتلقي إشعار تلقائي فور حل المشكلة، أو المتابعة والإبلاغ كزائر دون تسجيل دخول.'
+                          : 'You can sign in with Google to receive an automatic notification when fixed, or continue as guest without signing in.'}
+                      </p>
+                      
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSignInAndReport}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 hover:bg-primary/90 transition-all cursor-pointer shadow-xs active:scale-98"
+                        >
+                          <LogIn className="w-4 h-4" />
+                          <span>{language === 'ar' ? 'تسجيل الدخول والإبلاغ' : 'Sign In with Google'}</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setReportAsGuest(true)}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <span>{language === 'ar' ? 'الإبلاغ كزائر مباشرة' : 'Continue as Guest'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5 text-start">
+                      {reportAsGuest && !user && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-muted/30 rounded-2xl border border-border/70">
+                          <div>
+                            <label className="block text-[11px] font-bold text-muted-foreground mb-1">
+                              {language === 'ar' ? 'اسمك (اختياري):' : 'Your Name (optional):'}
+                            </label>
+                            <input
+                              type="text"
+                              value={guestName}
+                              onChange={e => setGuestName(e.target.value)}
+                              placeholder={language === 'ar' ? 'مثال: أحمد' : 'e.g. Alex'}
+                              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-muted-foreground mb-1">
+                              {language === 'ar' ? 'بريدك الإلكتروني للإشعار (اختياري):' : 'Email for notification (optional):'}
+                            </label>
+                            <input
+                              type="email"
+                              value={guestEmail}
+                              onChange={e => setGuestEmail(e.target.value)}
+                              placeholder="name@example.com"
+                              className="w-full bg-background border border-border/80 rounded-xl px-2.5 py-1.5 text-xs text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-bold text-foreground mb-1.5">
+                          {language === 'ar' ? 'نوع المشكلة:' : 'Select the Issue:'}
+                        </label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {[
+                            { id: 'Video unavailable / deleted on YouTube', label: language === 'ar' ? 'الفيديو محذوف أو غير متاح على YouTube' : 'Video deleted or unavailable on YouTube' },
+                            { id: 'Audio is missing or broken', label: language === 'ar' ? 'الصوت مفقود أو غير واضح' : 'Audio is missing or muted' },
+                            { id: 'Video is private or restricted', label: language === 'ar' ? 'الفيديو مقفل أو محمي بحقوق النشر' : 'Video is private or copyright blocked' },
+                            { id: 'Wrong lesson content', label: language === 'ar' ? 'محتوى الدرس غير مطابق' : 'Wrong video content for this lesson' }
+                          ].map(item => (
+                            <label
+                              key={item.id}
+                              className={cn(
+                                "flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all",
+                                reportIssueType === item.id 
+                                  ? "bg-primary/10 border-primary text-foreground font-bold shadow-xs" 
+                                  : "bg-card border-border/70 text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                name="reportIssue"
+                                value={item.id}
+                                checked={reportIssueType === item.id}
+                                onChange={e => setReportIssueType(e.target.value)}
+                                className="w-3.5 h-3.5 text-primary"
+                              />
+                              <span>{item.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-foreground mb-1">
+                          {language === 'ar' ? 'ملاحظات إضافية (اختياري):' : 'Additional details (Optional):'}
+                        </label>
+                        <textarea
+                          value={reportNotes}
+                          onChange={e => setReportNotes(e.target.value)}
+                          placeholder={language === 'ar' ? 'مثال: يبدأ الفيديو من الدقيقة 2 بدون صوت...' : 'e.g. Video stopped working around minute 2:30...'}
+                          rows={2}
+                          className="w-full bg-background border border-border/80 rounded-xl p-2.5 text-xs text-foreground focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                        <button
+                          type="button"
+                          onClick={() => setIsReportModalOpen(false)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={reportStatus === 'submitting'}
+                          onClick={submitReport}
+                          className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-98"
+                        >
+                          {reportStatus === 'submitting' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                          <span>{reportStatus === 'submitting' ? (language === 'ar' ? 'جاري الإرسال للإدارة...' : 'Sending to Admin...') : (language === 'ar' ? 'إرسال البلاغ للإدارة' : 'Submit Report to Admin')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

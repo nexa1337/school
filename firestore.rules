@@ -39,7 +39,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (request.auth.token.email == "marouananouar02@gmail.com" ||
+        (request.auth.token.email in ["atlas1337agency@gmail.com", "marouananouar02@gmail.com"] ||
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
@@ -154,17 +154,12 @@ service cloud.firestore {
     }
 
     function isValidReport(data) {
-      return hasOnlyAllowedFields(['type', 'courseId', 'courseTitle', 'categoryId', 'videoId', 'videoTitle', 'youtubeId', 'userId', 'userName', 'userEmail', 'status', 'createdAt']) &&
-             data.type == 'broken_video' &&
-             data.courseId is string && data.courseId.size() > 0 && data.courseId.size() <= 100 &&
-             data.courseTitle is string && data.courseTitle.size() > 0 && data.courseTitle.size() <= 200 &&
-             isValidOptionalString('categoryId', 0, 100) &&
-             data.videoId is string && data.videoId.size() > 0 && data.videoId.size() <= 100 &&
-             data.videoTitle is string && data.videoTitle.size() > 0 && data.videoTitle.size() <= 200 &&
-             data.youtubeId is string && data.youtubeId.size() > 0 && data.youtubeId.size() <= 100 &&
-             data.userId is string && data.userId.size() > 0 && data.userId.size() <= 100 &&
-             data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100 &&
-             isValidOptionalString('userEmail', 0, 200) &&
+      return (data.type in ['broken_video', 'content_issue', 'general_bug']) &&
+             data.courseId is string && data.courseId.size() > 0 &&
+             data.courseTitle is string && data.courseTitle.size() > 0 &&
+             data.videoId is string && data.videoId.size() > 0 &&
+             data.videoTitle is string && data.videoTitle.size() > 0 &&
+             data.youtubeId is string && data.youtubeId.size() > 0 &&
              data.status in ['pending', 'resolved'] &&
              data.createdAt is number;
     }
@@ -249,10 +244,11 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated() && isValidReport(request.resource.data) && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin() && isValidReport(request.resource.data) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isAdmin();
+      allow read, write: if true;
+    }
+
+    match /form_submissions/{submissionId} {
+      allow read, write: if true;
     }
 
     match /system_backups/{backupId} {

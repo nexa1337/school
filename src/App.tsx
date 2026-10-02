@@ -12,6 +12,7 @@ import { Layout } from './components/Layout';
 import { WhatsNew } from './components/WhatsNew';
 import { PushNotificationPopup } from './components/PushNotificationPopup';
 import { CustomCursor } from './components/CustomCursor';
+import { ScrollToTop } from './components/ScrollToTop';
 
 import { Home } from './pages/Home';
 import { Courses } from './pages/Courses';
@@ -48,6 +49,7 @@ export default function App() {
     <HelmetProvider>
       <CustomCursor />
       <Router>
+        <ScrollToTop />
         <WhatsNew />
         <PushNotificationPopup />
         <Routes>
@@ -66,6 +68,7 @@ export default function App() {
             <Route path="about" element={<About />} />
             <Route path="copyright" element={<Copyright />} />
             <Route path="contact" element={<Contact />} />
+            <Route path="creator" element={<Creator />} />
             <Route path="creator/:creatorId" element={<Creator />} />
           </Route>
           <Route path="/course/:courseId" element={<Course />} />
